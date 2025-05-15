@@ -1,7 +1,7 @@
 from .symbol_table import SymbolTable
 
 from g.antlr.gParser import gParser as gp
-from g.antlr import gVisitor
+from g.antlr.gVisitor import gVisitor
 
 # switch for arithmetic operations
 ARITHM_SWITCH = {
