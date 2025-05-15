@@ -36,7 +36,7 @@ class EvalVisitor(exprsVisitor):
         self.visit(expr)
     
     # assignment: SYM ':=' expr
-    def visitAssignment(self, ctx: exp.AssignementContext):
+    def visitAssignment(self, ctx: exp.AssignmentContext):
         name  = ctx.SYM().getText()
         value = self.visit(ctx.expr())
         self._declare(name, value)
