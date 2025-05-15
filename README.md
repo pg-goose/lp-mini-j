@@ -1,3 +1,12 @@
+# Notes
+
+La comanda per compilar el .g4
+`antlr4 -Dlanguage=Python3 -no-listener exprs.g4`
+
+Compilar gramatica i generar visitors:
+`antlr4 -Dlanguage=Python3 -no-listener -visitor exprs.g4`
+
+
 # Pràctica LP: G
 
 Aquesta pàgina descriu la pràctica de GEI-LP (edició 2024-2025 Q2). En aquesta pràctica has d'escriure un intèrpret G; una versió simplificada de J (derivat d'APL) utilitzant Python, ANTLR i numpy.
