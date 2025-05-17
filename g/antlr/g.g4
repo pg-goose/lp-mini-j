@@ -13,8 +13,7 @@ stmt
      ;
 
 expr
-     : unaryOp expr                # unaryexpr
-     | operand (binaryOp expr)?    # binaryexpr
+     : operand (binaryOp expr)?    # binaryexpr
      ;
 
 // an operand can be a vector literal, a single number, a variable, or parenthesized
@@ -25,19 +24,23 @@ operand
     | '(' expr ')'       // grouping, like “(1 + 2)”
     ;
 
+// single number
+scalar
+     : unaryOp? INT ;
+
 // a vector is two or more sacalars in a row
 // capture space-separated numbers as one list
 vector
     : scalar scalar+  // ex: 1 2 3
     ;
 
-// single number
-scalar
-     : INT ;
-
-// unoperator
+// unary operator
 unaryOp
-     : '_'
+     : binaryOp ':'
+     | '_'
+     | ']'
+     | '#'
+     | 'i.'
      ;
 
 // binary operators
@@ -45,9 +48,11 @@ binaryOp
      : '+'
      | '-'
      | '*'
-     | '/'
+     | '%'
      | '|'
      | '^'
+     | '/'
+     | ','
      ;         // we could expand with CHAR to be able to define custom operators?
 
 // Lexer Rules
