@@ -3,14 +3,14 @@ from antlr4 import CommonTokenStream, InputStream
 
 from g.antlr.gLexer import gLexer
 from g.antlr.gParser import gParser
-from g.core.evaluator import EvaluatorVisitor
+from g.core.evaluator import GEvaluator
 
 
 def repl():
     """
     A simple REPL (Read-Eval-Print Loop) for the G interpreter.
     """
-    visitor = EvaluatorVisitor()
+    visitor = GEvaluator()
     while True:
         try:
             # Read input from the user
@@ -24,7 +24,8 @@ def repl():
             parser = gParser(token_stream)
             tree = parser.root()
             result = visitor.visit(tree)
-            print(result)
+            if result is not None:
+                print(result)
         except KeyboardInterrupt:
             print("\nbye :(")
             sys.exit(0)

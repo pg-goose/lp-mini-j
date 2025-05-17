@@ -4,13 +4,18 @@ from g.antlr.gParser import gParser as gp
 from g.antlr.gVisitor import gVisitor
 
 # switch for arithmetic operations
-ARITHM_SWITCH = {
+BINARYOPS_SWITCH = {
     '+': lambda x,y: x + y,
     '-': lambda x,y: x - y,
     '*': lambda x,y: x * y,
     '/': lambda x,y: x // y,
     '|': lambda x,y: x % y,
     '^': lambda x,y: x ** y
+}
+
+UNARYOPS_SWITCH = {
+    '+': lambda x: x,
+    '-': lambda x: -x,
 }
 
 class BaseMixin:
@@ -22,6 +27,20 @@ class BaseMixin:
 
     def _resolve(self, name: str):
         return self._symbol_table.resolve(name)
+
+    def _performUnary(self, op, value):
+        """
+        Apply op to value depending on the type
+        All ops are elementwise, so:
+          - scalar ∘ scalar  => scalar
+          - scalar ∘ list    => [scalar ∘ e for e in list]
+          - list ∘ scalar    => [e ∘ scalar for e in list]
+          - list ∘ list      => zip-wise [e1 ∘ e2 …]
+        """
+        # check if operand exists in symbol table
+        if op not in UNARYOPS_SWITCH:
+            raise RuntimeError(f"Unknown operator: {op}")
+        return self._perform(op, value, None)
     
     def _perform(self, op, left, right):
         """
@@ -36,6 +55,8 @@ class BaseMixin:
         def apply(func, l, r):
             # both lists?
             if isinstance(l, list) and isinstance(r, list):
+                if len(l) != len(r):
+                    raise ValueError("lists of different length")
                 return [func(x,y) for x,y in zip(l,r)]
             # one list only
             if isinstance(l, list):
@@ -45,9 +66,9 @@ class BaseMixin:
             # both scalars
             return func(l,r)
         # check if operand exists in symbol table
-        if op not in ARITHM_SWITCH:
+        if op not in BINARYOPS_SWITCH:
             raise RuntimeError(f"Unknown operator: {op}")
-        return apply(ARITHM_SWITCH[op], left, right)
+        return apply(BINARYOPS_SWITCH[op], left, right)
 
 class BaseEvaluator(BaseMixin, gVisitor):
     # visitRoot already defined in gVisitor
@@ -56,30 +77,35 @@ class BaseEvaluator(BaseMixin, gVisitor):
         # override this because all terminal nodes return None
         return nextResult or aggregate
 
-    def visitExprStmt(self, ctx: gp.ExprStmtContext):
-        return self.visit(ctx.expr())
-
-    def visitExpr(self, ctx: gp.ExprContext):
-        # the expression can be an single operand or a operand with some operator
-        # if it is a single operand, we can just return the value
-        left = ctx.operand()
-        if ctx.binaryop():
-            operator = ctx.binaryop().getText()
-            right = ctx.expr()
-            return self._perform(operator, left, right)
-        return self.visit(left)
-    
     def visitHelp(self, ctx: gp.HelpContext):
         # traverse the class tree and print it's name
         for cls in type(self).__mro__:
             print(cls.__name__)
-        
+
+    def visitExprStmt(self, ctx: gp.ExprStmtContext):
+        return self.visit(ctx.expr())
+    
     def visitAssignment(self, ctx: gp.AssignmentContext):
         name  = ctx.ID().getText()
         value = self.visit(ctx.expr())
         self._define(name, value)
         return None
 
+class ExprMixin(BaseMixin):
+    def visitUnaryexpr(self, ctx: gp.UnaryexprContext):
+        "Unary expression like -x or +x"
+        operand = self.visit(ctx.operand())
+        op = ctx.unaryOp().getText()
+        return UNARYOPS_SWITCH[ctx.unaryOp().getText()](self.visit(ctx.operand()))
+
+    def visitBinaryexpr(self, ctx: gp.BinaryexprContext):
+        "Binary expression like x + y or x - y"
+        left = self.visit(ctx.operand())
+        right = self.visit(ctx.expr())
+        op = ctx.binaryOp().getText()
+        return self._perform(op, left, right)
+
+class OperandMixin(BaseMixin):
     def visitOperand(self, ctx):
         # the operand can be a scalar, a vector, a symbol or parenthesis
         if ctx.scalar():
@@ -104,11 +130,7 @@ class BaseEvaluator(BaseMixin, gVisitor):
             return int(ctx.INT().getText())
         # TODO expand for other types
 
-class ArithmeticMixin(BaseMixin):
-    def visitSUM(self, ctx: gp.SUMContext):
-        print("not implemented yet")
-
-class GEvaluator(BaseEvaluator):
+class GEvaluator(BaseEvaluator, ExprMixin, OperandMixin):
     """
     Evaluator for the g language.
     """
