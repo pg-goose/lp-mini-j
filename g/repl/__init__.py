@@ -19,9 +19,7 @@ def repl():
                 print("bye :(")
                 sys.exit(0)
                 break
-            # Create a lexer and parser for the input
-            input_stream = InputStream(input('? '))
-            lexer = gLexer(input_stream)
+            lexer = gLexer(InputStream(user_input))
             token_stream = CommonTokenStream(lexer)
             parser = gParser(token_stream)
             tree = parser.root()
