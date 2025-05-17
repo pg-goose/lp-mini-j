@@ -13,9 +13,8 @@ ARITHM_SWITCH = {
     '^': lambda x,y: x ** y
 }
 
-class EvaluatorVisitor(gVisitor):
+class BaseMixin:
     def __init__(self):
-        super().__init__()
         self._symbol_table = SymbolTable()
 
     def _define(self, name: str, value = None):
@@ -49,7 +48,8 @@ class EvaluatorVisitor(gVisitor):
         if op not in ARITHM_SWITCH:
             raise RuntimeError(f"Unknown operator: {op}")
         return apply(ARITHM_SWITCH[op], left, right)
-    
+
+class BaseEvaluator(BaseMixin, gVisitor):
     # visitRoot already defined in gVisitor
 
     def visitExprStmt(self, ctx: gp.ExprStmtContext):
@@ -66,6 +66,7 @@ class EvaluatorVisitor(gVisitor):
             operator = ctx.binaryop().getText()
             right = ctx.expr()
             return self._perform(operator, left, right)
+        self.visit(left)
     
     def visitHelp(self, ctx: gp.HelpContext):
         """
@@ -74,7 +75,6 @@ class EvaluatorVisitor(gVisitor):
         # traverse the class tree and print it's name
         for cls in type(self).__mro__:
             print(cls.__name__)
-        
         
     def visitAssignment(self, ctx: gp.AssignmentContext):
         """
@@ -85,3 +85,22 @@ class EvaluatorVisitor(gVisitor):
         self._define(name, value)
         return value
 
+    def visitOperand(self, ctx):
+        pass
+
+    def visitVector(self, ctx):
+        pass
+
+    def visitScalar(self, ctx):
+        pass
+
+class ArithmeticMixin(BaseMixin):
+    def visitSUM(self, ctx: gp.SUMContext):
+        pass
+
+class GEvaluator(BaseEvaluator):
+    """
+    Evaluator for the g language.
+    """
+    def __init__(self):
+        super().__init__()
