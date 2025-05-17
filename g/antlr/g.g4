@@ -3,23 +3,23 @@ grammar g; // Name of the grammar for subset G of J
 // Parser Rules
 // entry point: one or more statements, then end-of-file
 root
-     : stmt+ EOF
-     ;
+    : stmt+ EOF
+    ;
 
 stmt 
-     : 'help'            # help
-     | ID ASSIGN expr    # assignment
-     | expr              # exprStmt
-     ;
+    : 'help'            # help
+    | ID ASSIGN expr    # assignment
+    | expr              # exprStmt
+    ;
 
 expr
-     : operand (binaryOp expr)?    # binaryexpr
-     ;
+    : operand (binaryOp expr)?    # binaryexpr
+    ;
 
 operand 
-     : unaryOp operand   # unaryexpr
-     | unit              # unitexpr
-     ;
+    : unaryOp operand   # unaryexpr
+    | unit              # unitexpr
+    ;
 
 // a unit can be a vector literal, a single number, a variable, or parenthesized
 unit
@@ -31,7 +31,7 @@ unit
 
 // single number
 scalar
-     : INT ;
+    : INT ;
 
 // a vector is two or more sacalars in a row
 // capture space-separated numbers as one list
@@ -41,34 +41,34 @@ vector
 
 // unary operator
 unaryOp
-    : binaryOp ':'?   // converts verb to unary
-    | '_'             // scalar negation
-    | ']'             // identity
-    | '#'             // len
-    | 'i.'            // iota like go
-    | '~'             // flip
+    : binaryOp ':'  # makeunary // converts verb to unary
+    | binaryOp '/'  # fold
+    | '_'           # NEGATE    // scalar negation
+    | ']'           # IDENTITY  // identity
+    | '#'           # LEN       // len
+    | 'i.'          # IOTA      // iota like go
+    | '~'           # FLIP      // flip
     ;
 
 // binary operators
 binaryOp
-     : '+'     // sum
-     | '-'     // sub
-     | '*'     // mult
-     | '%'     // div
-     | '|'     // mod
-     | '^'     // pow
-     | '/'     // fold
-     | '>='    // gte
-     | '<='    // lte
-     | '<>'    // dif
-     | '>'     // gt
-     | '<'     // lt
-     | '='     // eq
-     | ','     // concat
-     | '@:'    // compose
-     | '#'     // filter
-     | '{'     // access
-     ;         // we could expand with CHAR to be able to define custom operators?
+    : '+'     // sum
+    | '-'     // sub
+    | '*'     // mult
+    | '%'     // div
+    | '|'     // mod
+    | '^'     // pow
+    | '>='    // gte
+    | '<='    // lte
+    | '<>'    // dif
+    | '>'     // gt
+    | '<'     // lt
+    | '='     // eq
+    | ','     // concat
+    | '@:'    // compose
+    | '#'     // filter
+    | '{'     // access
+    ;         // we could expand with CHAR to be able to define custom operators?
 
 
 // Lexer Rules

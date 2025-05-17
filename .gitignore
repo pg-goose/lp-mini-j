@@ -1,7 +1,8 @@
 .venv
 *.pyc
-__pycache__/
+__pycache__
 README.md
 *.interp
 *.tokens
 __pycache__
+/g/antlr/*.py
