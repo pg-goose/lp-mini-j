@@ -1,21 +1,10 @@
+from g.core.binary_operatos import BINARYOPS_SWITCH
+from g.core.unary_operators import UNARYOPS_SWITCH
 from .symbol_table import SymbolTable
 
 from g.antlr.gParser import gParser as gp
 from g.antlr.gVisitor import gVisitor
 
-# switch for arithmetic operations
-BINARYOPS_SWITCH = {
-    '+': lambda x,y: x + y,
-    '-': lambda x,y: x - y,
-    '*': lambda x,y: x * y,
-    '/': lambda x,y: x // y,
-    '|': lambda x,y: x % y,
-    '^': lambda x,y: x ** y
-}
-
-UNARYOPS_SWITCH = {
-    '_': lambda x: -x,
-}
 
 class BaseMixin:
     def __init__(self):
@@ -26,22 +15,6 @@ class BaseMixin:
 
     def _resolve(self, name: str):
         return self._symbol_table.resolve(name)
-
-    def _performUnary(self, op, value):
-        """
-        Apply op to value depending on the type
-        All ops are elementwise, so:
-          - scalar ∘ scalar  => scalar
-          - scalar ∘ list    => [scalar ∘ e for e in list]
-          - list ∘ scalar    => [e ∘ scalar for e in list]
-          - list ∘ list      => zip-wise [e1 ∘ e2 …]
-        """
-        def apply(func, l):
-            return func(l)
-        # check if operand exists in symbol table
-        if op not in UNARYOPS_SWITCH:
-            raise RuntimeError(f"Unknown operator: {op}")
-        return apply(UNARYOPS_SWITCH[op], value)
 
     def _perform(self, op, left, right):
         """
@@ -76,7 +49,9 @@ class BaseEvaluator(BaseMixin, gVisitor):
 
     def aggregateResult(self, aggregate, nextResult):
         # override this because all terminal nodes return None
-        return nextResult or aggregate
+        if nextResult is None:
+            return aggregate
+        return nextResult
 
     def visitHelp(self, ctx: gp.HelpContext):
         # traverse the class tree and print it's name
@@ -93,14 +68,8 @@ class BaseEvaluator(BaseMixin, gVisitor):
         return None
 
 class ExprMixin(BaseMixin):
-    def visitUnaryexpr(self, ctx: gp.UnaryexprContext):
-        "Unary expression like -x or +x"
-        op = ctx.unaryOp().getText()
-        operand = self.visit(ctx.expr())
-        return self._performUnary(op, operand)
-
     def visitBinaryexpr(self, ctx: gp.BinaryexprContext):
-        "Binary expression like x + y or x - y"
+        "Expression that consists in `expression operator expression`"
         left = self.visit(ctx.operand())
         if not ctx.binaryOp():
             # if there is no binary operator, just return the left operand
@@ -110,8 +79,8 @@ class ExprMixin(BaseMixin):
         return self._perform(op, left, right)
 
 class OperandMixin(BaseMixin):
-    def visitOperand(self, ctx):
-        # the operand can be a scalar, a vector, a symbol or parenthesis
+    def visitUnit(self, ctx):
+        # the unit can be a scalar, a vector, a symbol or parenthesis
         if ctx.scalar():
             return self.visit(ctx.scalar())
         if ctx.vector():
@@ -121,6 +90,20 @@ class OperandMixin(BaseMixin):
             return self._resolve(name)
         # if parenthesis, visit the expression inside
         return self.visit(ctx.expr())
+    
+    def visitUnaryexpr(self, ctx: gp.UnaryexprContext):
+        "Expression that consists in `operator expression`"
+        # if there is no unary operator, just return the operand
+        if not ctx.unaryOp():
+            return self.visit(ctx.operand())
+        # if there is a unary operator, apply it to the operand
+        op = ctx.unaryOp().getText()
+        value = self.visit(ctx.operand())
+        if op in UNARYOPS_SWITCH:
+            value = UNARYOPS_SWITCH[op](value)
+        else:
+            raise RuntimeError(f"Unknown operator: {op}")
+        return value
 
     def visitVector(self, ctx):
         # the vector can be a list of scalars or a list of vectors
@@ -129,10 +112,13 @@ class OperandMixin(BaseMixin):
             return [self.visit(scalar) for scalar in ctx.scalar()]
         # TODO expand for nested vectors
 
-    def visitScalar(self, ctx):
+    def visitScalar(self, ctx: gp.ScalarContext):
+        value = None
         if ctx.INT():
-            return int(ctx.INT().getText())
+            value = int(ctx.INT().getText())
         # TODO expand for other types
+        return value
+            
 
 class GEvaluator(BaseEvaluator, ExprMixin, OperandMixin):
     """
