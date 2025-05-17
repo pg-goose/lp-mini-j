@@ -52,15 +52,6 @@ class EvaluatorVisitor(gVisitor):
     
     # visitRoot already defined in gVisitor
 
-    def visitAssignment(self, ctx: gp.AssignmentContext):
-        """
-        Visit an assignment statement.
-        """
-        name  = ctx.ID().getText()
-        value = self.visit(ctx.expr())
-        self._define(name, value)
-        return value
-
     def visitExprStmt(self, ctx: gp.ExprStmtContext):
         """
         Visit an expression statement.
@@ -75,5 +66,22 @@ class EvaluatorVisitor(gVisitor):
             operator = ctx.binaryop().getText()
             right = ctx.expr()
             return self._perform(operator, left, right)
+    
+    def visitHelp(self, ctx: gp.HelpContext):
+        """
+        Visit a help statement. (test)
+        """
+        # traverse the class tree and print it's name
+        for cls in type(self).__mro__:
+            print(cls.__name__)
         
+        
+    def visitAssignment(self, ctx: gp.AssignmentContext):
+        """
+        Visit an assignment statement.
+        """
+        name  = ctx.ID().getText()
+        value = self.visit(ctx.expr())
+        self._define(name, value)
+        return value
 
