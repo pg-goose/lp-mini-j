@@ -52,10 +52,11 @@ class BaseMixin:
 class BaseEvaluator(BaseMixin, gVisitor):
     # visitRoot already defined in gVisitor
 
+    def aggregateResult(self, aggregate, nextResult):
+        # override this because all terminal nodes return None
+        return nextResult or aggregate
+
     def visitExprStmt(self, ctx: gp.ExprStmtContext):
-        """
-        Visit an expression statement.
-        """
         return self.visit(ctx.expr())
 
     def visitExpr(self, ctx: gp.ExprContext):
@@ -66,37 +67,46 @@ class BaseEvaluator(BaseMixin, gVisitor):
             operator = ctx.binaryop().getText()
             right = ctx.expr()
             return self._perform(operator, left, right)
-        self.visit(left)
+        return self.visit(left)
     
     def visitHelp(self, ctx: gp.HelpContext):
-        """
-        Visit a help statement. (test)
-        """
         # traverse the class tree and print it's name
         for cls in type(self).__mro__:
             print(cls.__name__)
         
     def visitAssignment(self, ctx: gp.AssignmentContext):
-        """
-        Visit an assignment statement.
-        """
         name  = ctx.ID().getText()
         value = self.visit(ctx.expr())
         self._define(name, value)
-        return value
+        return None
 
     def visitOperand(self, ctx):
-        pass
+        # the operand can be a scalar, a vector, a symbol or parenthesis
+        if ctx.scalar():
+            return self.visit(ctx.scalar())
+        if ctx.vector():
+            return self.visit(ctx.vector())
+        if ctx.ID(): # if symbol, resolve it
+            name = ctx.ID().getText()
+            return self._resolve(name)
+        # if parenthesis, visit the expression inside
+        return self.visit(ctx.expr())
 
     def visitVector(self, ctx):
-        pass
+        # the vector can be a list of scalars or a list of vectors
+        # if it is a list of scalars, we can just return the list
+        if isinstance(ctx.scalar(), list):
+            return [self.visit(scalar) for scalar in ctx.scalar()]
+        # TODO expand for nested vectors
 
     def visitScalar(self, ctx):
-        pass
+        if ctx.INT():
+            return int(ctx.INT().getText())
+        # TODO expand for other types
 
 class ArithmeticMixin(BaseMixin):
     def visitSUM(self, ctx: gp.SUMContext):
-        pass
+        print("not implemented yet")
 
 class GEvaluator(BaseEvaluator):
     """
