@@ -16,8 +16,13 @@ expr
      : operand (binaryOp expr)?    # binaryexpr
      ;
 
-// an operand can be a vector literal, a single number, a variable, or parenthesized
-operand
+operand 
+     : unaryOp operand   # unaryexpr
+     | unit              # unitexpr
+     ;
+
+// a unit can be a vector literal, a single number, a variable, or parenthesized
+unit
     : vector             // a list of numbers, e.g. “1 2  3”
     | scalar             // scalar
     | ID                 // variable name
@@ -26,7 +31,7 @@ operand
 
 // single number
 scalar
-     : unaryOp? INT ;
+     : INT ;
 
 // a vector is two or more sacalars in a row
 // capture space-separated numbers as one list
@@ -36,24 +41,35 @@ vector
 
 // unary operator
 unaryOp
-     : binaryOp ':'
-     | '_'
-     | ']'
-     | '#'
-     | 'i.'
-     ;
+    : binaryOp ':'?   // converts verb to unary
+    | '_'             // scalar negation
+    | ']'             // identity
+    | '#'             // len
+    | 'i.'            // iota like go
+    | '~'             // flip
+    ;
 
 // binary operators
 binaryOp
-     : '+'
-     | '-'
-     | '*'
-     | '%'
-     | '|'
-     | '^'
-     | '/'
-     | ','
+     : '+'     // sum
+     | '-'     // sub
+     | '*'     // mult
+     | '%'     // div
+     | '|'     // mod
+     | '^'     // pow
+     | '/'     // fold
+     | '>='    // gte
+     | '<='    // lte
+     | '<>'    // dif
+     | '>'     // gt
+     | '<'     // lt
+     | '='     // eq
+     | ','     // concat
+     | '@:'    // compose
+     | '#'     // filter
+     | '{'     // access
      ;         // we could expand with CHAR to be able to define custom operators?
+
 
 // Lexer Rules
 ASSIGN: '=:';               // Assignment operator
