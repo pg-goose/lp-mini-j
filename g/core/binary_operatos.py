@@ -1,12 +1,27 @@
-def maskFilter(mask, ls):     
+def toList(x):
+    return x if isinstance(x, list) else [x]
+
+def maskFilter(mask, ls):
+    """return a list of elements from the list using the mask"""
     if len(mask) != len(ls):
         raise ValueError("lists of different length")
-    return [x for m, x in zip(mask, ls) if m]
+    out = []
+    for n, elem in zip(mask, ls):
+        out.extend([elem] * n)
+    return out    
 
 def concat(x, y):
-    xl = x if isinstance(x, list) else [x]
-    yl = y if isinstance(y, list) else [y]
-    return xl + yl
+    return toList(x) + toList(y)
+
+def listIndexes(idxs, ls):
+    """return a list of indexes for the given list"""
+    idxs, ls = toList(idxs), toList(ls)
+    result = []
+    for idx in idxs:
+        if idx < -len(ls) or idx >= len(ls):
+            raise ValueError(f"index error: {m}")
+        result.append(ls[idx])
+    return result
 
 # switch for arithmetic operations
 BINARYOPS_SWITCH = {
@@ -25,5 +40,12 @@ BINARYOPS_SWITCH = {
     ',': concat,
     '@:': lambda f,g: lambda x: f(g(x)),
     '#': maskFilter,
-    '{': lambda idxs,ls: [ls[i] for i in idxs],
+    '{': listIndexes,
+}
+
+BINARYOPS_NO_LIFT = {
+    '{',
+    '#',
+    ',',
+    '@:',
 }

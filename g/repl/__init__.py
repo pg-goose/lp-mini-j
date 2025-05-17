@@ -15,6 +15,8 @@ def repl():
         try:
             # Read input from the user
             user_input = input("> ")
+            if user_input.strip() == "":
+                continue
             if user_input.lower() in ["exit", "quit"]:
                 print("bye :(")
                 sys.exit(0)

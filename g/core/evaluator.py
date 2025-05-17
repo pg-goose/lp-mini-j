@@ -1,4 +1,4 @@
-from g.core.binary_operatos import BINARYOPS_SWITCH
+from g.core.binary_operatos import BINARYOPS_NO_LIFT, BINARYOPS_SWITCH
 from g.core.unary_operators import UNARYOPS_SWITCH
 from .symbol_table import SymbolTable
 
@@ -17,32 +17,31 @@ class BaseMixin:
         return self._symbol_table.resolve(name)
 
     def _perform(self, op, left, right):
-        """
-        Apply op between left and right depening on the type
-        All ops are elementwise, so:
-          - scalar ∘ scalar  => scalar
-          - scalar ∘ list    => [scalar ∘ e for e in list]
-          - list ∘ scalar    => [e ∘ scalar for e in list]
-          - list ∘ list      => zip-wise [e1 ∘ e2 …]
-        """
-        # helper function, applies f to a and b
-        def apply(func, l, r):
-            # both lists?
-            if isinstance(l, list) and isinstance(r, list):
-                if len(l) != len(r):
-                    raise ValueError("lists of different length")
-                return [func(x,y) for x,y in zip(l,r)]
-            # one list only
-            if isinstance(l, list):
-                return [func(x,r) for x in l]
-            if isinstance(r, list):
-                return [func(l,y) for y in r]
-            # both scalars
-            return func(l,r)
-        # check if operand exists in symbol table
-        if op not in BINARYOPS_SWITCH:
+        func = BINARYOPS_SWITCH.get(op)
+        if func is None:
             raise RuntimeError(f"Unknown operator: {op}")
-        return apply(BINARYOPS_SWITCH[op], left, right)
+        no_broadcast = op in BINARYOPS_NO_LIFT
+        return BaseMixin._apply(func, left, right, no_broadcast)
+
+    @staticmethod # static to indicate it does not mutate an instance
+    def _apply(func, l, r, no_broadcast=False):
+        # both lists?
+        if no_broadcast:
+            return func(l, r)
+    
+        # https://en.wikipedia.org/wiki/Applicative_functor
+        if isinstance(left, list) or isinstance(right, list):
+            # turn non-lists into “constant” lists
+            if not isinstance(left, list):
+                left = [left] * len(right)
+            if not isinstance(right, list):
+                right = [right] * len(left)
+            if len(left) != len(right):
+                raise ValueError("lists of different length")
+            # recurse element-wise
+            return [ BaseMixin._apply(func, l, r) for l,r in zip(left, right) ]
+        # both scalars
+        return func(l, r)
 
 class BaseEvaluator(BaseMixin, gVisitor):
     # visitRoot already defined in gVisitor
