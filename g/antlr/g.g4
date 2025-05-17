@@ -12,9 +12,9 @@ stmt
      | expr              # exprStmt
      ;
 
-// expressions are parsed right-to-left, all ops same precedence
 expr
-     : operand (binaryop expr)? // operand then optionally “+ expr” etc. so we can do '1 1 1'
+     : unaryOp expr                # unaryexpr
+     | operand (binaryOp expr)?    # binaryexpr
      ;
 
 // an operand can be a vector literal, a single number, a variable, or parenthesized
@@ -35,19 +35,24 @@ vector
 scalar
      : INT ;
 
-// binary operators
-binaryop
-     : '+'     # SUM
-     | '-'     # SUB
-     | '*'     # MUL
-     | '/'     # DIV
-     | '|'     # MOD
-     | '^'     # POW
+// unoperator
+unaryOp
+     : '_'
      ;
+
+// binary operators
+binaryOp
+     : '+'
+     | '-'
+     | '*'
+     | '/'
+     | '|'
+     | '^'
+     ;         // we could expand with CHAR to be able to define custom operators?
 
 // Lexer Rules
 ASSIGN: '=:';               // Assignment operator
 INT: [0-9]+;             // Integer numbers
-ID: [a-zA-Z_][a-zA-Z0-9_]*; // Identifiers
+ID : [a-zA-Z] [a-zA-Z0-9_]* ;
 WS: [ \t\r\n]+ -> skip;     // Whitespace (ignored)
 COMMENT : 'NB.' ~[\r\n]* -> skip ;
