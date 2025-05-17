@@ -2,7 +2,7 @@ import sys
 from antlr4 import FileStream, CommonTokenStream
 from g.antlr.gLexer import gLexer
 from g.antlr.gParser import gParser
-from g.core.evaluator import EvaluatorVisitor
+from g.core.evaluator import GEvaluator
 from g.repl import repl
 
 def main():
@@ -14,7 +14,7 @@ def main():
     if not j_file.endswith(".j"):
         print("Warn: file must have .j extension")
     
-    visitor = EvaluatorVisitor()
+    visitor = GEvaluator()
 
     input_stream = FileStream(j_file, econding='utf-8')
     lexer = gLexer(input_stream)
