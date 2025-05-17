@@ -69,14 +69,29 @@ class BaseEvaluator(BaseMixin, gVisitor):
 
 class ExprMixin(BaseMixin):
     def visitBinaryexpr(self, ctx: gp.BinaryexprContext):
-        "Expression that consists in `expression operator expression`"
+        """operand (binaryOp expr)?"""
+        # if there is no binary operator, just return the left operand
         left = self.visit(ctx.operand())
         if not ctx.binaryOp():
-            # if there is no binary operator, just return the left operand
             return left
         right = self.visit(ctx.expr())
         op = ctx.binaryOp().getText()
         return self._perform(op, left, right)
+    
+    def visitUnaryexpr(self, ctx: gp.UnaryexprContext):
+        """unaryOp operand"""
+        op = ctx.unaryOp().getText()
+        value = self.visit(ctx.operand())
+
+        # simple unary operator
+        if op in UNARYOPS_SWITCH:
+            return UNARYOPS_SWITCH[op](value)
+        
+        # may have a visitor method
+        func = self.visit(ctx.unaryOp())
+        if func is not None:
+            return func(value)
+        raise RuntimeError(f"Unknown operator: {op}")
 
 class OperandMixin(BaseMixin):
     def visitUnit(self, ctx):
@@ -90,20 +105,6 @@ class OperandMixin(BaseMixin):
             return self._resolve(name)
         # if parenthesis, visit the expression inside
         return self.visit(ctx.expr())
-    
-    def visitUnaryexpr(self, ctx: gp.UnaryexprContext):
-        "Expression that consists in `operator expression`"
-        # if there is no unary operator, just return the operand
-        if not ctx.unaryOp():
-            return self.visit(ctx.operand())
-        # if there is a unary operator, apply it to the operand
-        op = ctx.unaryOp().getText()
-        value = self.visit(ctx.operand())
-        if op in UNARYOPS_SWITCH:
-            value = UNARYOPS_SWITCH[op](value)
-        else:
-            raise RuntimeError(f"Unknown operator: {op}")
-        return value
 
     def visitVector(self, ctx):
         # the vector can be a list of scalars or a list of vectors
@@ -118,9 +119,27 @@ class OperandMixin(BaseMixin):
             value = int(ctx.INT().getText())
         # TODO expand for other types
         return value
-            
 
-class GEvaluator(BaseEvaluator, ExprMixin, OperandMixin):
+class UnaryMixin(BaseMixin):
+    def fold(self, func, iter):
+        # TODO should I put fold here? not the best organizational choice
+        if not isinstance(iter, list):
+            iter = [iter]
+        acc = iter[0]
+        for item in iter[1:]:
+            acc = func(acc, item)
+        return acc
+
+    def visitFold(self, ctx: gp.FoldContext):
+        """binaryOp '/'"""
+        op = ctx.binaryOp().getText()
+        func = BINARYOPS_SWITCH[op]
+        # we return the partially applied fold
+        return lambda iter: self.fold(func, iter)
+
+
+
+class GEvaluator(BaseEvaluator, ExprMixin, OperandMixin, UnaryMixin):
     """
     Evaluator for the g language.
     """
