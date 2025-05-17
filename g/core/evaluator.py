@@ -136,6 +136,13 @@ class UnaryMixin(BaseMixin):
         func = BINARYOPS_SWITCH[op]
         # we return the partially applied fold
         return lambda iter: self.fold(func, iter)
+    
+    def visitMakeunary(self, ctx: gp.MakeunaryContext):
+        """binaryOp ':' ⇒ retorna funció x ↦ op(x, x)."""
+        op = ctx.binaryOp().getText()
+        if op is None or op not in BINARYOPS_SWITCH:
+            raise RuntimeError(f"Unknown binary operator ‘{op}’")
+        return lambda x: self._perform(op, x, x)
 
 
 
