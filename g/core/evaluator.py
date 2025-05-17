@@ -14,8 +14,7 @@ BINARYOPS_SWITCH = {
 }
 
 UNARYOPS_SWITCH = {
-    '+': lambda x: x,
-    '-': lambda x: -x,
+    '_': lambda x: -x,
 }
 
 class BaseMixin:
@@ -37,11 +36,13 @@ class BaseMixin:
           - list ∘ scalar    => [e ∘ scalar for e in list]
           - list ∘ list      => zip-wise [e1 ∘ e2 …]
         """
+        def apply(func, l):
+            return func(l)
         # check if operand exists in symbol table
         if op not in UNARYOPS_SWITCH:
             raise RuntimeError(f"Unknown operator: {op}")
-        return self._perform(op, value, None)
-    
+        return apply(UNARYOPS_SWITCH[op], value)
+
     def _perform(self, op, left, right):
         """
         Apply op between left and right depening on the type
@@ -94,13 +95,16 @@ class BaseEvaluator(BaseMixin, gVisitor):
 class ExprMixin(BaseMixin):
     def visitUnaryexpr(self, ctx: gp.UnaryexprContext):
         "Unary expression like -x or +x"
-        operand = self.visit(ctx.operand())
         op = ctx.unaryOp().getText()
-        return UNARYOPS_SWITCH[ctx.unaryOp().getText()](self.visit(ctx.operand()))
+        operand = self.visit(ctx.expr())
+        return self._performUnary(op, operand)
 
     def visitBinaryexpr(self, ctx: gp.BinaryexprContext):
         "Binary expression like x + y or x - y"
         left = self.visit(ctx.operand())
+        if not ctx.binaryOp():
+            # if there is no binary operator, just return the left operand
+            return left
         right = self.visit(ctx.expr())
         op = ctx.binaryOp().getText()
         return self._perform(op, left, right)
