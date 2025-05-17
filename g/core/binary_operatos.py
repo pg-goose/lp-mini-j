@@ -8,12 +8,6 @@ def concat(x, y):
     yl = y if isinstance(y, list) else [y]
     return xl + yl
 
-def fold(func, iter):
-    acc = iter[0] if isinstance(iter, list) else iter
-    for item in iter[1:]:
-        acc = func(acc, item)
-    return acc
-
 # switch for arithmetic operations
 BINARYOPS_SWITCH = {
     '+': lambda x,y: x + y,
@@ -22,7 +16,6 @@ BINARYOPS_SWITCH = {
     '%': lambda x,y: x / y,
     '|': lambda x,y: x % y,
     '^': lambda x,y: x ** y,
-    '/': fold,
     '>=': lambda x,y: x >= y,
     '<=': lambda x,y: x <= y,
     '<>': lambda x,y: x != y,
