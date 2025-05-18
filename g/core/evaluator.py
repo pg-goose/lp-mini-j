@@ -30,16 +30,13 @@ class BaseMixin:
             return func(l, r)
     
         # https://en.wikipedia.org/wiki/Applicative_functor
-        if isinstance(left, list) or isinstance(right, list):
+        if isinstance(l, list) or isinstance(r, list):
             # turn non-lists into “constant” lists
-            if not isinstance(left, list):
-                left = [left] * len(right)
-            if not isinstance(right, list):
-                right = [right] * len(left)
-            if len(left) != len(right):
-                raise ValueError("lists of different length")
+            if not isinstance(l, list): l = [l] * len(r)
+            if not isinstance(r, list): r = [r] * len(l)
+            if len(l) != len(r): raise ValueError("lists of different length")
             # recurse element-wise
-            return [ BaseMixin._apply(func, l, r) for l,r in zip(left, right) ]
+            return [ BaseMixin._apply(func, l, r) for l,r in zip(l, r) ]
         # both scalars
         return func(l, r)
 
@@ -68,14 +65,22 @@ class BaseEvaluator(BaseMixin, gVisitor):
 
 class ExprMixin(BaseMixin):
     def visitBinaryexpr(self, ctx: gp.BinaryexprContext):
-        """operand (binaryOp expr)?"""
-        # if there is no binary operator, just return the left operand
         left = self.visit(ctx.operand())
-        if not ctx.binaryOp():
+        bin_ctx  = ctx.binaryOp()
+        flip_ctx = ctx.flipOp()
+    
+        # no operator → just the single operand
+        if not (bin_ctx or flip_ctx):
             return left
+        # figure out which BinaryOpContext actually applies
+        op_ctx = bin_ctx or flip_ctx.binaryOp()
+        # compute the right-hand side
         right = self.visit(ctx.expr())
-        op = ctx.binaryOp().getText()
-        return self._perform(op, left, right)
+        # if it was a “flip” production, swap the args
+        a, b = (right, left) if flip_ctx else (left, right)
+    
+        return self._perform(op_ctx.getText(), a, b)
+
     
     def visitUnaryexpr(self, ctx: gp.UnaryexprContext):
         """unaryOp operand"""
@@ -142,7 +147,6 @@ class UnaryMixin(BaseMixin):
         if op is None or op not in BINARYOPS_SWITCH:
             raise RuntimeError(f"Unknown binary operator ‘{op}’")
         return lambda x: self._perform(op, x, x)
-
 
 
 class GEvaluator(BaseEvaluator, ExprMixin, OperandMixin, UnaryMixin):

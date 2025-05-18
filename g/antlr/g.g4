@@ -12,9 +12,13 @@ stmt
     | expr              # exprStmt
     ;
 
+flipOp
+  : binaryOp FLIP
+  ;
+
 expr
-    : operand (binaryOp expr)?    # binaryexpr
-    ;
+  : operand ((binaryOp | flipOp) expr)? # binaryexpr
+  ;
 
 operand 
     : unaryOp operand   # unaryexpr
@@ -41,37 +45,36 @@ vector
 
 // unary operator
 unaryOp
-    : binaryOp ':'  # makeunary // converts verb to unary
-    | binaryOp '/'  # fold
-    | '_'           # NEGATE    // scalar negation
+    : binaryOp ':'  # makeunary // converts verb to unary (i)
+    | binaryOp '/'  # fold      // fold (i)
+    | '_'           # NEGATE    // scalar negation ()
     | ']'           # IDENTITY  // identity
     | '#'           # LEN       // len
     | 'i.'          # IOTA      // iota like go
-    | '~'           # FLIP      // flip
     ;
 
 // binary operators
 binaryOp
-    : '+'     // sum
-    | '-'     // sub
-    | '*'     // mult
-    | '%'     // div
-    | '|'     // mod
-    | '^'     // pow
-    | '>='    // gte
-    | '<='    // lte
-    | '<>'    // dif
-    | '>'     // gt
-    | '<'     // lt
-    | '='     // eq
-    | ','     // concat
-    | '@:'    // compose
-    | '#'     // filter
-    | '{'     // access
-    ;         // we could expand with CHAR to be able to define custom operators?
-
+    : '+'     // sum      (i)  
+    | '-'     // sub      (i)  
+    | '*'     // mult     (i)  
+    | '%'     // div      (i)  
+    | '|'     // mod      (i)  
+    | '^'     // pow      (i)  
+    | '>='    // gte      (i)  
+    | '<='    // lte      (i)  
+    | '<>'    // dif      (i)  
+    | '>'     // gt       (i)
+    | '<'     // lt       (i)
+    | '='     // eq       (i)
+    | ','     // concat   (i)  
+    | '@:'    // compose  ()      
+    | '#'     // filter   (i)  
+    | '{'     // access   (i)  
+    ;
 
 // Lexer Rules
+FLIP: '~';
 ASSIGN: '=:';               // Assignment operator
 INT: [0-9]+;             // Integer numbers
 ID : [a-zA-Z] [a-zA-Z0-9_]* ;
