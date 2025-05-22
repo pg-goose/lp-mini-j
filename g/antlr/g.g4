@@ -1,20 +1,23 @@
-grammar g; // Name of the grammar for subset G of J
+grammar g;
 
-// Parser Rules
-// entry point: one or more statements, then end-of-file
 root
     : stmt+ EOF
+    | 'help'            # help
     ;
 
-stmt 
-    : 'help'            # help
-    | ID ASSIGN expr    # assignment
-    | expr              # exprStmt
-    ;
+funcdecl
+  : (binaryOp | unaryOp | IDENTITY) ( '@:' funcdecl )+
+  ;
 
 flipOp
-  : binaryOp FLIP
+  : binaryOp FLIP   # flipped
   ;
+
+stmt 
+    : ID ASSIGN funcdecl # assgFuncdecl
+    | ID ASSIGN expr     # assgExpr
+    | expr               # exprStmt
+    ;
 
 expr
   : operand ((binaryOp | flipOp) expr)? # binaryexpr
@@ -25,32 +28,28 @@ operand
     | unit              # unitexpr
     ;
 
-// a unit can be a vector literal, a single number, a variable, or parenthesized
 unit
-    : vector             // a list of numbers, e.g. “1 2  3”
-    | scalar             // scalar
-    | ID                 // variable name
-    | '(' expr ')'       // grouping, like “(1 + 2)”
+    : vector
+    | scalar
+    | ID
+    | '(' expr ')'
     ;
 
-// single number
 scalar
     : INT ;
 
-// a vector is two or more sacalars in a row
-// capture space-separated numbers as one list
 vector
     : scalar scalar+  // ex: 1 2 3
     ;
 
 // unary operator
 unaryOp
-    : binaryOp ':'  # makeunary // converts verb to unary (i)
-    | binaryOp '/'  # fold      // fold (i)
-    | '_'           # NEGATE    // scalar negation ()
-    | ']'           # IDENTITY  // identity
-    | '#'           # LEN       // len
-    | 'i.'          # IOTA      // iota like go
+    : binaryOp ':'  # makeunary
+    | binaryOp '/'  # fold
+    | '_'           # NEGATE
+    | ']'           # IDENTITY
+    | '#'           # LEN
+    | 'i.'          # IOTA
     ;
 
 // binary operators
@@ -74,9 +73,15 @@ binaryOp
     ;
 
 // Lexer Rules
-FLIP: '~';
-ASSIGN: '=:';               // Assignment operator
-INT: [0-9]+;             // Integer numbers
-ID : [a-zA-Z] [a-zA-Z0-9_]* ;
-WS: [ \t\r\n]+ -> skip;     // Whitespace (ignored)
-COMMENT : 'NB.' ~[\r\n]* -> skip ;
+FLIP:
+    '~';
+ASSIGN:
+    '=:';
+INT:
+    [0-9]+;
+ID:
+    [a-zA-Z] [a-zA-Z0-9_]* ;
+WS:
+    [ \t\r\n]+ -> skip;
+COMMENT:
+    'NB.' ~[\r\n]* -> skip ;
