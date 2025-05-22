@@ -8,7 +8,7 @@ stmt
     : ID ASSIGN funcdecl # assgFuncdecl
     | ID ASSIGN expr     # assgExpr
     | expr               # exprStmt
-    | HELP            # help
+    | HELP               # help
     ;
 
 funcdecl
