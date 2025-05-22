@@ -2,26 +2,22 @@ grammar g;
 
 root
     : stmt+ EOF
-    | 'help'            # help
     ;
-
-funcdecl
-  : (binaryOp | unaryOp | IDENTITY) ( '@:' funcdecl )+
-  ;
-
-flipOp
-  : binaryOp FLIP   # flipped
-  ;
 
 stmt 
     : ID ASSIGN funcdecl # assgFuncdecl
     | ID ASSIGN expr     # assgExpr
     | expr               # exprStmt
+    | HELP            # help
+    ;
+
+funcdecl
+    : (binaryOp | unaryOp | IDENTITY) ( '@:' funcdecl )+
     ;
 
 expr
-  : operand ((binaryOp | flipOp) expr)? # binaryexpr
-  ;
+    : operand ((binaryOp | flipOp) expr)? # binaryexpr
+    ;
 
 operand 
     : unaryOp operand   # unaryexpr
@@ -33,6 +29,10 @@ unit
     | scalar
     | ID
     | '(' expr ')'
+    ;
+
+flipOp
+    : binaryOp FLIP   # flipped
     ;
 
 scalar
@@ -73,6 +73,7 @@ binaryOp
     ;
 
 // Lexer Rules
+
 FLIP:
     '~';
 ASSIGN:
@@ -85,3 +86,5 @@ WS:
     [ \t\r\n]+ -> skip;
 COMMENT:
     'NB.' ~[\r\n]* -> skip ;
+HELP:
+    'help';
