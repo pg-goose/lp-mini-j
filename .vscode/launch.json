@@ -16,7 +16,12 @@
             "name": "Debug .j execution",
             "type": "debugpy",
             "request": "launch",
-            "program": "python g.py"
+            "cwd": "${workspaceFolder}",
+            "program": "${workspaceFolder}/g.py",
+            "args": [
+                "debug.j"
+            ],
+            "justMyCode": false
         }
     ]
 }

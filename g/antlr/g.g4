@@ -1,27 +1,27 @@
 grammar g;
 
 root
-    : stmt+ EOF
+    : NEWLINE? (stmt NEWLINE*)* EOF
     ;
 
 stmt 
-    : ID ASSIGN funcdecl # assgFuncdecl
-    | ID ASSIGN expr     # assgExpr
-    | expr               # exprStmt
+    : ID ASSIGN (expr | compose)     # assgexpr
+    | expr               # exprstmt
     | HELP               # help
     ;
 
-funcdecl
-    : (binaryOp | unaryOp | IDENTITY) ( '@:' funcdecl )+
+compose
+    : expr ( '@:' compose )?
     ;
 
 expr
-    : operand ((binaryOp | flipOp) expr)? # binaryexpr
+    : ID expr                             # applyexpr
+    | operand ((binaryOp | flipOp) expr)? # binaryexpr
     ;
 
 operand 
-    : unaryOp operand   # unaryexpr
-    | unit              # unitexpr
+    : unaryOp (expr)?      # unaryexpr
+    | unit                 # unitexpr
     ;
 
 unit
@@ -36,7 +36,7 @@ flipOp
     ;
 
 scalar
-    : INT ;
+    : (NEGATIVE)? INT ;
 
 vector
     : scalar scalar+  // ex: 1 2 3
@@ -46,7 +46,7 @@ vector
 unaryOp
     : binaryOp ':'  # makeunary
     | binaryOp '/'  # fold
-    | '_'           # NEGATE
+    | '-'           # NEGATE
     | ']'           # IDENTITY
     | '#'           # LEN
     | 'i.'          # IOTA
@@ -67,13 +67,12 @@ binaryOp
     | '<'     // lt       (i)
     | '='     // eq       (i)
     | ','     // concat   (i)  
-    | '@:'    // compose  ()      
     | '#'     // filter   (i)  
     | '{'     // access   (i)  
     ;
 
-// Lexer Rules
-
+NEGATIVE:
+    '_';
 FLIP:
     '~';
 ASSIGN:
@@ -82,6 +81,8 @@ INT:
     [0-9]+;
 ID:
     [a-zA-Z] [a-zA-Z0-9_]* ;
+NEWLINE:
+    '\r'? '\n' ;
 WS:
     [ \t\r\n]+ -> skip;
 COMMENT:

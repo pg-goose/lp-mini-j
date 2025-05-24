@@ -1,4 +1,6 @@
 from g.core.binary_operatos import BINARYOPS_NO_LIFT, BINARYOPS_SWITCH
+from g.core.error import GError, GSyntaxError, GValueError
+from g.core.result import Result
 from g.core.unary_operators import UNARYOPS_SWITCH
 from .symbol_table import SymbolTable
 
@@ -19,7 +21,7 @@ class BaseMixin:
     def _perform(self, op, left, right):
         func = BINARYOPS_SWITCH.get(op)
         if func is None:
-            raise RuntimeError(f"Unknown operator: {op}")
+            raise GSyntaxError(f"unknown operator {op}")
         no_broadcast = op in BINARYOPS_NO_LIFT
         return BaseMixin._apply(func, left, right, no_broadcast)
 
@@ -34,17 +36,27 @@ class BaseMixin:
             # turn non-lists into “constant” lists
             if not isinstance(l, list): l = [l] * len(r)
             if not isinstance(r, list): r = [r] * len(l)
-            if len(l) != len(r): raise ValueError("lists of different length")
+            if len(l) != len(r): raise GValueError("lists of different length")
             # recurse element-wise
-            return [ BaseMixin._apply(func, l, r) for l,r in zip(l, r) ]
+            return [ BaseMixin._apply(func, l, r, no_broadcast) for l,r in zip(l, r) ]
         # both scalars
         return func(l, r)
 
 class BaseEvaluator(BaseMixin, gVisitor):
-    # visitRoot already defined in gVisitor
+    def visitRoot(self, ctx: gp.RootContext):
+        result = []
+        for child in ctx.stmt():
+            # visit the child and aggregate the result
+            try:
+                r = self.visit(child)
+            except GError as e:
+                r = e
+            if r is not None:
+                result.append(Result(r))
+        return result if len(result) >= 1 else None
+                
 
     def aggregateResult(self, aggregate, nextResult):
-        # override this because all terminal nodes return None
         if nextResult is None:
             return aggregate
         return nextResult
@@ -54,16 +66,34 @@ class BaseEvaluator(BaseMixin, gVisitor):
         for cls in type(self).__mro__:
             print(cls.__name__)
 
-    def visitExprStmt(self, ctx: gp.ExprStmtContext):
-        return self.visit(ctx.expr())
-    
-    def visitAssignment(self, ctx: gp.AssignmentContext):
+    def visitAssgexpr(self, ctx: gp.AssgexprContext):
         name  = ctx.ID().getText()
-        value = self.visit(ctx.expr())
+        value = self.visit(ctx.expr() or ctx.compose())
         self._define(name, value)
         return None
 
+    def visitExprstmt(self, ctx: gp.ExprstmtContext):
+        return self.visit(ctx.expr())
+
 class ExprMixin(BaseMixin):
+    def visitCompose(self, ctx: gp.ComposeContext):
+        f = self.visit(ctx.expr())
+        if ctx.compose() is None:
+            if callable(f):
+                return f
+            raise GSyntaxError("cannot compose non-callable expressions")
+        # compose the next expression
+        g = self.visit(ctx.compose())
+        if callable(f) and callable(g):
+            return lambda x: f(g(x))
+        raise GSyntaxError("cannot compose non-callable expressions")
+    
+    def visitApplyexpr(self, ctx: gp.ApplyexprContext):
+        f = self._resolve(ctx.ID().getText())
+        if callable(f):
+            return f(self.visit(ctx.expr()))
+        raise GSyntaxError(f"cannot apply non-callable expression: {ctx.ID().getText()}")
+
     def visitBinaryexpr(self, ctx: gp.BinaryexprContext):
         left = self.visit(ctx.operand())
         bin_ctx  = ctx.binaryOp()
@@ -74,28 +104,39 @@ class ExprMixin(BaseMixin):
             return left
         # figure out which BinaryOpContext actually applies
         op_ctx = bin_ctx or flip_ctx.binaryOp()
+        op = op_ctx.getText()
         # compute the right-hand side
         right = self.visit(ctx.expr())
-        # if it was a “flip” production, swap the args
+
+        if callable(right):
+            return lambda x: self._perform(op, left, right(x))
+
+        # if it was a “flip” production, swap args
         a, b = (right, left) if flip_ctx else (left, right)
-    
-        return self._perform(op_ctx.getText(), a, b)
 
-    
+        # both plain → compute now
+        return self._perform(op, a, b)
+
     def visitUnaryexpr(self, ctx: gp.UnaryexprContext):
-        """unaryOp operand"""
         op = ctx.unaryOp().getText()
-        value = self.visit(ctx.operand())
+        expr_ctx = ctx.expr()
+        value = self.visit(expr_ctx) if expr_ctx else None
 
-        # simple unary operator
+        # built-in unary operator
         if op in UNARYOPS_SWITCH:
-            return UNARYOPS_SWITCH[op](value)
-        
-        # may have a visitor method
-        func = self.visit(ctx.unaryOp())
-        if func is not None:
+            func = UNARYOPS_SWITCH[op]
+            # no operand → return as first-class function
+            if value is None:
+                return func
             return func(value)
-        raise RuntimeError(f"Unknown operator: {op}")
+
+        # custom visitor for this operator
+        func = self.visit(ctx.unaryOp())
+        if callable(func):
+            if value is None:
+                return func
+            return func(value)
+        raise GSyntaxError(f"unknown operator {op}")
 
 class OperandMixin(BaseMixin):
     def visitUnit(self, ctx):
@@ -121,7 +162,8 @@ class OperandMixin(BaseMixin):
         value = None
         if ctx.INT():
             value = int(ctx.INT().getText())
-        # TODO expand for other types
+        if ctx.NEGATIVE():
+            value = -value
         return value
 
 class UnaryMixin(BaseMixin):
@@ -145,8 +187,8 @@ class UnaryMixin(BaseMixin):
         """binaryOp ':' ⇒ retorna funció x ↦ op(x, x)."""
         op = ctx.binaryOp().getText()
         if op is None or op not in BINARYOPS_SWITCH:
-            raise RuntimeError(f"Unknown binary operator ‘{op}’")
-        return lambda x: self._perform(op, x, x)
+            raise GSyntaxError(f"unknown binary operator ‘{op}’")
+        return lambda x, op=op: self._perform(op, x, x)
 
 
 class GEvaluator(BaseEvaluator, ExprMixin, OperandMixin, UnaryMixin):

@@ -16,13 +16,15 @@ def main():
     
     visitor = GEvaluator()
 
-    input_stream = FileStream(j_file, econding='utf-8')
+    input_stream = FileStream(j_file, encoding='utf-8')
     lexer = gLexer(input_stream)
     token_stream = CommonTokenStream(lexer)
     parser = gParser(token_stream)
     tree = parser.root()
     result = visitor.visit(tree)
-    print(result)
+    for r in result:
+        if r is not None:
+            print(r)
 
 if __name__ == "__main__":
     main()
