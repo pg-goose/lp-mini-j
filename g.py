@@ -16,8 +16,8 @@ def main():
     
     visitor = GEvaluator()
 
-    input_stream = FileStream(j_file, encoding='utf-8')
-    lexer = gLexer(input_stream)
+    inputStream = FileStream(j_file, encoding='utf-8')
+    lexer = gLexer(inputStream)
     lexer.removeErrorListeners()
 
     token_stream = CommonTokenStream(lexer)

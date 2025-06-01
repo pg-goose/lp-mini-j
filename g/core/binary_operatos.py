@@ -1,10 +1,13 @@
+from g.core.error import GValueError
+
+
 def toList(x):
     return x if isinstance(x, list) else [x]
 
 def maskFilter(mask, ls):
     """return a list of elements from the list using the mask"""
     if len(mask) != len(ls):
-        raise ValueError("lists of different length")
+        raise GValueError("lists of different length")
     out = []
     for n, elem in zip(mask, ls):
         out.extend([elem] * n)
@@ -19,7 +22,7 @@ def listIndexes(idxs, ls):
     result = []
     for idx in idxs:
         if idx < -len(ls) or idx >= len(ls):
-            raise ValueError(f"index error: {m}")
+            raise GValueError(f"index error")
         result.append(ls[idx])
     return result
 

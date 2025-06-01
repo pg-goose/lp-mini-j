@@ -14,16 +14,16 @@ def repl():
     while True:
         try:
             # Read input from the user
-            user_input = input("> ")
-            if user_input.strip() == "":
+            userInput = input("> ")
+            if userInput.strip() == "":
                 continue
-            if user_input.lower() in ["exit", "quit"]:
+            if userInput.lower() in ["exit", "quit"]:
                 print("bye :(")
                 sys.exit(0)
                 break
-            lexer = gLexer(InputStream(user_input))
-            token_stream = CommonTokenStream(lexer)
-            parser = gParser(token_stream)
+            lexer = gLexer(InputStream(userInput))
+            tokenStream = CommonTokenStream(lexer)
+            parser = gParser(tokenStream)
             parser.removeErrorListeners()
 
             tree = parser.root()

@@ -1,0 +1,18 @@
+
+0
+value error: lists of different length
+1 0 1
+1
+0 0 1
+1 0 0
+
+3
+value error: index error
+value error: lists of different length
+value error: lists of different length
+0
+1
+object of type 'int' has no len()
+5
+1 0 1 0 1 0
+3

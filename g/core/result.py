@@ -1,6 +1,10 @@
 from g.core.error import GError
 
 class Result:
+    """
+    A class to represent the result of an operation, which can be either a value or an error.
+    Provides an easy way to implement J like printing for values.
+    """
     def __init__(self, value):
         self.value = value
 
