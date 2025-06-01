@@ -18,8 +18,12 @@ def main():
 
     input_stream = FileStream(j_file, encoding='utf-8')
     lexer = gLexer(input_stream)
+    lexer.removeErrorListeners()
+
     token_stream = CommonTokenStream(lexer)
     parser = gParser(token_stream)
+    parser.removeErrorListeners()
+
     tree = parser.root()
     result = visitor.visit(tree)
     for r in result:
