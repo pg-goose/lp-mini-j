@@ -25,10 +25,15 @@ def main():
     parser.removeErrorListeners()
 
     tree = parser.root()
+    N = parser.getNumberOfSyntaxErrors()
+    if N > 0:
+        print(f'{N} syntax errors found')
+        return 1
     result = visitor.visit(tree)
     for r in result:
         if r is not None:
             print(r)
+    return 0
 
 if __name__ == "__main__":
     main()

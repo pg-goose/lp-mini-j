@@ -24,7 +24,13 @@ def repl():
             lexer = gLexer(InputStream(user_input))
             token_stream = CommonTokenStream(lexer)
             parser = gParser(token_stream)
+            parser.removeErrorListeners()
+
             tree = parser.root()
+            N = parser.getNumberOfSyntaxErrors()
+            if N > 0:
+                print(f'{N} syntax errors found')
+                continue
             result = visitor.visit(tree)
             if result is not None:
                 print(result)
